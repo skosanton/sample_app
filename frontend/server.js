@@ -4,7 +4,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://backend:8000";
-app.use("/api", createProxyMiddleware({ target: BACKEND_URL, changeOrigin: true }));
+app.use("/fe/api", createProxyMiddleware({ target: BACKEND_URL, changeOrigin: true }));
 
 app.use(express.static(path.join(__dirname, "public")));
 

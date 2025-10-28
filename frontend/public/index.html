@@ -36,7 +36,7 @@
     const out = document.getElementById("output");
     const show = async () => {
       out.textContent = "Loading...";
-      const r = await fetch("/api/items");
+      const r = await fetch("/fe/api/items");
       const j = await r.json();
       out.textContent = JSON.stringify(j.items, null, 2);
     };
@@ -45,7 +45,7 @@
     document.getElementById("addBtn").onclick = async () => {
       const v = document.getElementById("addInput").value.trim();
       if (!v) return;
-      const r = await fetch("/api/items", {
+      const r = await fetch("/fe/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: v }),
@@ -57,7 +57,7 @@
     document.getElementById("delBtn").onclick = async () => {
       const v = document.getElementById("delInput").value.trim();
       if (!v) return;
-      const r = await fetch(`/api/items/${encodeURIComponent(v)}`, { method: "DELETE" });
+      const r = await fetch(`/fe/api/items/${encodeURIComponent(v)}`, { method: "DELETE" });
       out.textContent = JSON.stringify(await r.json(), null, 2);
       show();
     };
