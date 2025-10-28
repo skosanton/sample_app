@@ -5,8 +5,10 @@ from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, select
+from sqlalchemy import text, create_engine, Column, Integer, String, select
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.engine import make_url
 
 def truthy(x) -> bool:
     return str(x).lower() in {"1", "true", "yes", "on"}
