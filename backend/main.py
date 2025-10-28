@@ -49,7 +49,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, futu
 Base = declarative_base()
 
 class Item(Base):
-    __tablename__ = "demo_items"
+    __tablename__ = "backend-db"
     id = Column(Integer, primary_key=True, autoincrement=True)
     value = Column(String(255), unique=True, nullable=False)
 
