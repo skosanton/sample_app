@@ -3,7 +3,7 @@ const path = require("path");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://backend-service-nodeport-service";
+const BACKEND_URL = process.env.BACKEND_URL || "http://backend-service-nodeport-service/api";
 const BASE_PATH = "/fe/"
 
 // Proxy /fe/api/* (or whatever BASE_PATH is) to backend
