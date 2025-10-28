@@ -45,7 +45,23 @@ elif ssl_requested:
 clean_url = urlunparse(u._replace(query=urlencode(q, doseq=True)))
 
 engine = create_engine(clean_url, pool_pre_ping=True, future=True, connect_args=connect_args)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+try:
+    with engine.connect() as _:
+        pass
+except OperationalError as e:
+    # MySQL 1049 = Unknown database
+    if getattr(e.orig, "args", [None])[0] == 1049:
+        url = make_url(clean_url)
+        dbname = url.database
+        # connect without a database, then create it
+        tmp = create_engine(url.set(database=None), pool_pre_ping=True, future=True, connect_args=connect_args)
+        with tmp.connect() as conn:
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"))
+        tmp.dispose()
+        engine.dispose()
+        engine = create_engine(clean_url, pool_pre_ping=True, future=True, connect_args=connect_args)
+    else:
+        raiseSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
 
 class Item(Base):
