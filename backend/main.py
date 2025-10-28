@@ -1,8 +1,15 @@
+# backend/main.py
 import os
+import ssl
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, select
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+def truthy(x) -> bool:
+    return str(x).lower() in {"1", "true", "yes", "on"}
 
 app = FastAPI()
 
@@ -10,16 +17,39 @@ db_url = os.getenv("DATABASE_URL")
 if not db_url:
     raise RuntimeError("DATABASE_URL not set")
 
-# If URL uses 'mysql://', tell SQLAlchemy to use PyMySQL driver
+# Ensure SQLAlchemy uses the PyMySQL driver
 if db_url.startswith("mysql://"):
     db_url = "mysql+pymysql://" + db_url[len("mysql://"):]
 
-engine = create_engine(db_url, pool_pre_ping=True, future=True)
+# Extract TLS/SSL params from the query string so they don't become unknown kwargs
+u = urlparse(db_url)
+q = dict(parse_qsl(u.query, keep_blank_values=True))
+
+ssl_requested = truthy(q.pop("tls", False)) or truthy(q.pop("ssl", False))
+ssl_ca   = q.pop("ssl_ca",   None) or os.getenv("MYSQL_SSL_CA")    # optional
+ssl_cert = q.pop("ssl_cert", None) or os.getenv("MYSQL_SSL_CERT")  # optional client cert
+ssl_key  = q.pop("ssl_key",  None) or os.getenv("MYSQL_SSL_KEY")   # optional client key
+
+connect_args = {}
+if ssl_ca or ssl_cert or ssl_key:
+    ctx = ssl.create_default_context(cafile=ssl_ca)
+    if ssl_cert and ssl_key:
+        ctx.load_cert_chain(certfile=ssl_cert, keyfile=ssl_key)
+    connect_args["ssl"] = ctx
+elif ssl_requested:
+    # Encrypt without CA verification if only tls=true/ssl=true was provided.
+    # Prefer providing MYSQL_SSL_CA (RDS CA bundle) in production.
+    connect_args["ssl"] = {}
+
+# Rebuild a clean URL without the unsupported tls/ssl params
+clean_url = urlunparse(u._replace(query=urlencode(q, doseq=True)))
+
+engine = create_engine(clean_url, pool_pre_ping=True, future=True, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
 
 class Item(Base):
-    __tablename__ = "backend-db"
+    __tablename__ = "demo_items"
     id = Column(Integer, primary_key=True, autoincrement=True)
     value = Column(String(255), unique=True, nullable=False)
 
@@ -41,7 +71,6 @@ def add_item(payload: ItemIn):
     if not v:
         raise HTTPException(400, "value is empty")
     with SessionLocal() as s:
-        # ignore duplicates gracefully
         if s.execute(select(Item).where(Item.value == v)).scalar_one_or_none():
             return {"status": "exists", "value": v}
         s.add(Item(value=v))
