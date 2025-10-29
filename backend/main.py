@@ -63,7 +63,8 @@ except OperationalError as e:
         engine.dispose()
         engine = create_engine(clean_url, pool_pre_ping=True, future=True, connect_args=connect_args)
     else:
-        raiseSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+        raise
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
 
 class Item(Base):
