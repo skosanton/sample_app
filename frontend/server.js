@@ -6,11 +6,11 @@ const app = express();
 const BACKEND_URL = process.env.BACKEND_URL || "https://app.skosyrev.com/";
 const BASE_PATH = "/fe/"
 
-// Proxy /fe/api/* (or whatever BASE_PATH is) to backend
+// Proxy /fe/api/*  ->  /api/*
 app.use(`${BASE_PATH}api`, createProxyMiddleware({
   target: BACKEND_URL,
   changeOrigin: true,
-  pathRewrite: (p) => p.replace(`${BASE_PATH}api`, "/api"),
+  pathRewrite: (path) => path.replace(new RegExp(`^${BASE_PATH}api`), "/api"),
 }));
 
 // Serve static files under /fe
